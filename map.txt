@@ -1,0 +1,15 @@
+R 1000   1000
+
+NO ./utils/pictures/stone.xpm
+SO ./utils/pictures/deco.xpm
+WE ./utils/pictures/brick.xpm
+EA ./utils/pictures/glass.xpm
+
+1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 0 0 0 0 0 0 0 0 0 0 0 0 1
+1 0 0 0 0 0 0 0 2 0 0 0 0 1
+1 0 0 0 0 0 0 0 0 0 0 0 0 1 
+1 0 0 0 0 0 0 0 0 0 0 0 0 1 
+1 0 0 0 0 0 0 0 0 0 0 0 0 1 
+1 0 0 0 0 0 0 0 N 0 0 0 0 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1
