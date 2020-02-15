@@ -1,9 +1,9 @@
 extern char** lines;
-
 int j;
 #include "cub3d.h"
 Screen sc;
 int save;
+int saveplayer;
 
 char	**fixline(void)
 {
@@ -16,6 +16,24 @@ char	**invalidemap(void)
 	printf("Error\ninvalidemap");
 	return(NULL);
 }
+int   checknumber(char a)
+{
+    if (a != '1' && a != '2' && a != 'N' && a != '0')
+    {
+        printf("Error\n, please use numbers{0;1;2}");
+        return(0);
+    }
+    if(a == 'N')
+        saveplayer++;
+    if(saveplayer > 1)
+    {
+        printf("Error\n, multiple player");
+        return(0);
+    }
+    return(1);
+}
+
+
 char    **ft_cub3d(int fd)
 {
 	int i;
@@ -31,7 +49,16 @@ char    **ft_cub3d(int fd)
 		c = -1;
 		tab = ft_split(lines[j], ' ');
 		while(tab[++c])
+        {
 		 	lines[j][c] = tab[c][0];
+            if(lines[0][c] != '1' || lines[j][0] != '1' || ( c == save - 1 && lines[j][c] != '1'))
+            {
+                printf("Error\n, Nap must be closed");
+                return(NULL);
+            }
+            if(!checknumber(lines[j][c]))
+                return(NULL);
+        }
 		if (c != save)
 			return(fixline());
 		lines[j][c] = '\0';
@@ -42,7 +69,16 @@ char    **ft_cub3d(int fd)
 	c = -1;
 	tab = ft_split(lines[j], ' ');
 	while(tab[++c])
+    {
 		lines[j][c] = tab[c][0];
+        if(lines[j][c] != '1')
+        {
+            printf("Error\n, Map must be closed");
+            return(NULL);
+        }
+        if(!checknumber(lines[j][c]))
+            return(NULL);
+    }
 	lines[j][c] = '\0';
 	lines[++j] = NULL;
 	j--;
@@ -129,6 +165,7 @@ int		readfile(int fd)
 	int i;
 	int c;
 
+    saveplayer = 0;
 	i = 0;
 	read = malloc(sizeof(char **) * 100);
 	lines = malloc(sizeof(char ** ) * 100);

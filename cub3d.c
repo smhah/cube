@@ -33,7 +33,7 @@ int width;
 // mlx variables
 void *mlx_ptr;
 void *win_ptr;
-
+int		g_i;
 //indices for walls
 int		tab[3];
 
@@ -50,6 +50,8 @@ typedef struct s_text
 }text;
 
 text t;
+
+
 typedef struct s_castRay{
 	float horizontalx;
 	float horizontaly;
@@ -81,19 +83,23 @@ char **lines;
 float rayAngle;
 typedef struct s_sprite
 {
-	float x[10000];
-	float y[10000];
-	float xh[10000];
-	float xv[10000];
-	float yv[10000];
-	float yh[10000];
-	float dist[10000];
-	float xc[10000];
-	float yc[10000];
-	float xprime[10000];
-	float yprime[10000];
-	float delta[10000];
-	float xofset[10000];
+	float	x[10000][1000];
+	float	y[10000][1000];
+	float	xh[10000][1000];
+	float	xv[10000][1000];
+	float	yv[10000][1000];
+	float	yh[10000][1000];
+	float	dist[10000][1000];
+	float	xc[10000];
+	float	yc[10000];
+	float	xprime[10000][1000];
+	float	yprime[10000][1000];
+	float	delta[10000];
+	float	xofset[10000][1000];
+	int		info[10000];
+	int		sprite;
+	int		saveh;
+	int		savev;
 }sprite;
 
 sprite s;
@@ -363,9 +369,9 @@ void	rectosprite(float spriteHeight, int i)
 	while(j - c < spriteHeight && j < sc.h)
 	{
 		y = (int)((j - c) * TILESIZE) / spriteHeight;
-			if(t.sprite[(int)s.xofset[r.id] + TILESIZE * y] != 0xff000000)
-				data[(int )i + (int )j * sc.w] = t.sprite[(int)s.xofset[r.id] + TILESIZE * y];
-				//printf("color is%x\n", data[(int )i + (int )j * sc.w] = t.sprite[(int)s.xofset[r.id] + TILESIZE * y]);
+			if(t.sprite[(int)s.xofset[r.id][g_i] + TILESIZE * y] != 0xff000000)
+				data[(int )i + (int )j * sc.w] = t.sprite[(int)s.xofset[r.id][g_i] + TILESIZE * y];
+				//printf("color is%x\n", data[(int )i + (int )j * sc.w] = t.sprite[(int)s.xofset[r.id][g_i] + TILESIZE * y]);
 		j++;
 		//printf("heho\n");
 	}
@@ -379,44 +385,44 @@ void	render3dsprite()
 
 	dist = sqrtf(powf(p.x - s.xc[r.id], 2) + powf(p.y - s.yc[r.id], 2));
 	projectDistance = (sc.w / 2) / tan(fov / 2);
-	//s.dist[r.id] = sqrtf(powf(p.x - s.xc[r.id], 2) + powf(p.y - s.yc[r.id], 2));//distance(p.x, s.xc[r.id], p.y, s.yc[r.id]);
-	//s.dist[r.id] = cos(p.rotationAngle - r.rays[r.id]) * r.cast.distance;
+	//s.dist[r.id][g_i] = sqrtf(powf(p.x - s.xc[r.id], 2) + powf(p.y - s.yc[r.id], 2));//distance(p.x, s.xc[r.id], p.y, s.yc[r.id]);
+	//s.dist[r.id][g_i] = cos(p.rotationAngle - r.rays[r.id]) * r.cast.distance;
 	//printf("%f|%f\n", s.xc[r.id], s.yc[r.id]);
 	spriteHeight = (projectDistance / dist) * TILESIZE;
-	//printf("%f|%f\n", s.xprime[r.id], s.yprime[r.id]);
+	//printf("%f|%f\n", s.xprime[r.id][g_i], s.yprime[r.id][g_i]);
 	rectosprite(spriteHeight, r.id);
 }
 void    drawRays(void)
 {
 	// clock_t start = clock();
 	unsigned int color;
+	int i;
 
 	r.id = 0;
 	while(r.id < Num_rays)
 	{
+		s.sprite = 0;
 		color = 0xfa2c34;
 		cast(r.rays[r.id]);
-		// if(r.id == Num_rays / 2)
+		// if(r.id ==1 / 2)
 		// 	drawLine(r.rays[r.id], 0xFFFFFF, 1);
 		// else
 		//	drawLine(r.rays[r.id], color, 1);
 		render3d(r.id);
+		g_i = s.sprite;
+		while(g_i--)
+		{
+			if(s.x[r.id][g_i] < MAXINT - 100)
+			{
+				rendersprite();
+				if(s.xofset[r.id][g_i] > 0 && s.xofset[r.id][g_i] < 70)
+					render3dsprite();
+			}
+		}
+			//printf("s.x[r.id][g_i] = %f\n", s.x[r.id][g_i]);
 		r.id+=1;
-		printf("o\n");
+		//printf("o\n");
 	}
-	r.id = 0;
-	while(r.id < Num_rays)
-	 {
-	 	if(s.x[r.id] < MAXINT - 100)
-	 	{
-	 		rendersprite();
-			render3dsprite();
-			//printf("s.x[r.id] = %f\n", s.x[r.id]);
-	 	}
-	 	r.id++;
-	 }
-	//printf("%f\n", s.x[13]);
-		//		printf("%f|%f|%f\n", s.x[5], s.y[5], s.dist[5]);
 }
 
 void	rendersprite(void)
@@ -429,21 +435,32 @@ void	rendersprite(void)
 	float c;
 	float x;
 	float y;
+	float dist;
 
 	angle = normalize(r.rays[r.id]);
 	angle = (Pi - angle) * (-1);
-	if(s.x[r.id] < 0)
+	if(rayFacingLeft(normalize(r.rays[r.id])))
+		tab[0] = 1;
+	else
+		tab[0] = 0;
+	if(rayFacingDown(normalize(r.rays[r.id])))
+		tab[1] = 1;
+	else
+		tab[1] = 0;
+	
+	if(s.x[r.id][g_i] < 0)
 	{
-		s.x[r.id] *= -1;
-		s.xc[r.id] = floor((s.x[r.id]) / TILESIZE) * TILESIZE + (rayFacingLeft(normalize(r.rays[r.id])) ? TILESIZE / (-2) : (TILESIZE / 2));
-		s.yc[r.id] = floor(s.y[r.id] / TILESIZE) * TILESIZE + TILESIZE / 2;
+		s.x[r.id][g_i] *= -1;
+		s.xc[r.id] = floor((s.x[r.id][g_i]) / TILESIZE) * TILESIZE + ((tab[0] == 1) ? TILESIZE / (-2) : (TILESIZE / 2));
+		s.yc[r.id] = floor(s.y[r.id][g_i] / TILESIZE) * TILESIZE + TILESIZE / 2;
+		tab[2] = 1;
 	}
 	else
 	{
-	s.xc[r.id] = floor(s.x[r.id] / TILESIZE) * TILESIZE +  TILESIZE / 2;//(rayFacingLeft(normalize(r.rays[r.id])) ? TILESIZE / 2 : (TILESIZE + TILESIZE / 2));
-	s.yc[r.id] = floor(s.y[r.id] / TILESIZE) * TILESIZE + (rayFacingDown(normalize(r.rays[r.id])) ? TILESIZE / 2 : TILESIZE / (-2));
+	s.xc[r.id] = floor(s.x[r.id][g_i] / TILESIZE) * TILESIZE +  TILESIZE / 2;//(rayFacingLeft(normalize(r.rays[r.id])) ? TILESIZE / 2 : (TILESIZE + TILESIZE / 2));
+	s.yc[r.id] = floor(s.y[r.id][g_i] / TILESIZE) * TILESIZE + ((tab[1] == 1) ? TILESIZE / 2 : TILESIZE / (-2));
+	tab[2] = 0;
 	}
-	
 	 //(rayFacingDown(normalize(r.rays[r.id])) ? TILESIZE / 2 : TILESIZE / (-2));
 	b = atan2(p.y - s.yc[r.id], p.x - s.xc[r.id]);
 	b = normalize(b);
@@ -452,22 +469,77 @@ void	rendersprite(void)
 	//printf("|b is%f|, |a is%f|\n", b * 180 / Pi, a * 180 / Pi);
 	//a = Pi - a;
 	//a = a + Pi / 2;
-	s.xprime[r.id] = p.x + (s.xc[r.id] - p.x) * cos(a) - (s.yc[r.id] - p.y) * sin(a);
-	s.yprime[r.id] = p.y + (s.xc[r.id] - p.x) * sin(a) + (s.yc[r.id] - p.y) * cos(a);
-	//data[(int )s.xprime[r.id] + (int )s.yprime[r.id] * sc.w] = 0xFFFFFF;
+	s.xprime[r.id][g_i] = p.x + (s.xc[r.id] - p.x) * cos(a) - (s.yc[r.id] - p.y) * sin(a);
+	s.yprime[r.id][g_i] = p.y + (s.xc[r.id] - p.x) * sin(a) + (s.yc[r.id] - p.y) * cos(a);
+	//data[(int )s.xprime[r.id][g_i] + (int )s.yprime[r.id][g_i] * sc.w] = 0xFFFFFF;
 	b = Pi - b;
 	x = (s.xc[r.id] - (TILESIZE / 2) * cos(b));
-	y = (s.yc[r.id] + (TILESIZE / 2) * cos(b));
-	s.xofset[r.id] = sqrtf(powf(s.xprime[r.id] - x, 2) + powf(s.yprime[r.id] - y, 2));
-	//printf("%f|%f|\n",b * 180 / Pi, xofset);
-	//DDA(s.xprime[r.id], s.yprime[r.id], s.xc[r.id], s.yc[r.id]);
+	y = (s.yc[r.id] + (TILESIZE / 2) * sin(b));
+	//s.xofset[r.id][g_i] = sqrtf(powf(s.xprime[r.id][g_i] - x, 2) + powf(s.yprime[r.id][g_i] - y, 2));
+	s.xofset[r.id][g_i] = sqrtf(powf(s.xprime[r.id][g_i] - s.xc[r.id], 2) + powf(s.yprime[r.id][g_i] - s.yc[r.id], 2));
+	//printf("|%f|\n", s.xofset[r.id][g_i]);
+	//DDA(s.xprime[r.id][g_i], s.yprime[r.id][g_i], s.xc[r.id], s.yc[r.id]); 
+	if(tab[1] == 0)
+	{
+		if(tab[2] == 0)
+		{
+			if(s.xprime[r.id][g_i] >= s.xc[r.id])
+				s.xofset[r.id][g_i] += TILESIZE / 2;
+			else
+				s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+		}
+		else
+		{
+			if(tab[0] == 1)
+			{
+				if(s.yprime[r.id][g_i] <= s.yc[r.id])
+					s.xofset[r.id][g_i] += TILESIZE / 2;
+				else
+					s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+			}
+			else
+			{
+				if(s.yprime[r.id][g_i] >= s.yc[r.id])
+					s.xofset[r.id][g_i] += TILESIZE / 2;
+				else
+					s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+			}
+		}
+	}
+	else
+	{
+		if(tab[2] == 0)
+		{
+			if(s.xprime[r.id][g_i] >= s.xc[r.id])
+				s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+			else
+				s.xofset[r.id][g_i] += TILESIZE / 2;
+		}
+		else
+		{
+			if(tab[0] == 1)
+			{
+				if(s.yprime[r.id][g_i] >= s.yc[r.id])
+					s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+				else
+					s.xofset[r.id][g_i] += TILESIZE / 2;
+			}
+			else
+			{
+				if(s.yprime[r.id][g_i] <= s.yc[r.id])
+					s.xofset[r.id][g_i] = TILESIZE - TILESIZE / 2 - s.xofset[r.id][g_i];
+				else
+					s.xofset[r.id][g_i] += TILESIZE / 2;
+			}
+		}
+	}
 	// a = angle;
 	// y2 = (s.xc[r.id] - b * s.yc[r.id] + a * p.y - p.x) / (a - b);
 	// x2 = b * y2 - b * s.yc[r.id] + s.xc[r.id];
 	//printf("centeris : %f|%f\n", y2, x2);
 	// data[(int )x2 + (int )y2 * sc.w] = 0x00bbaa;
 	// data[(int )s.xc[r.id] + (int )s.yc[r.id] * sc.w] = 0xFFFFFF;
-	// data[(int )s.x[r.id] + (int )s.y[r.id] * sc.w] = 0xFFFFFF;
+	// data[(int )s.x[r.id][g_i] + (int )s.y[r.id][g_i] * sc.w] = 0xFFFFFF;
 }
 
 void	horizontalintersect(float rayAngle)
@@ -490,8 +562,12 @@ void	horizontalintersect(float rayAngle)
 	{
 		if(lines[(int )(ay) / TILESIZE][(int )(ax) / TILESIZE] == '2')
 		{
-			s.xh[r.id] = ax;
-			s.yh[r.id] = ay + (!rayFacingDown(angle) ? 1 : 0);
+			s.xh[r.id][s.sprite] = ax;
+			s.yh[r.id][s.sprite] = ay + (!rayFacingDown(angle) ? 1 : 0);
+			s.sprite++;
+			s.xh[r.id][s.sprite] = MAXINT;
+			s.yh[r.id][s.sprite] = MAXINT;
+			//printf("findhor\n");
 		}
 		if(lines[(int )(ay) / TILESIZE][(int )(ax) / TILESIZE] == '1')
 		{
@@ -523,8 +599,12 @@ void 	verticalintersect(float rayAngle)
 	{
 		if(lines[(int )(ay) / TILESIZE][(int )(ax) / TILESIZE] == '2')
 		{
-			s.xv[r.id] = ax + (rayFacingLeft(angle) ? 1 : 0);
-			s.yv[r.id] = ay;
+			s.xv[r.id][s.sprite] = ax + (rayFacingLeft(angle) ? 1 : 0);
+			s.yv[r.id][s.sprite] = ay;
+			s.sprite++;
+			s.xv[r.id][s.sprite] = MAXINT;
+			s.yv[r.id][s.sprite] = MAXINT;
+			//printf("findver\n");
 		}
 		if(lines[(int )(ay) / TILESIZE][(int )(ax) / TILESIZE] == '1')
 		{
@@ -536,43 +616,54 @@ void 	verticalintersect(float rayAngle)
 		ay += ystep;
 	}
 }
+
 void	chosePoints()
 {
 	float a;
 	float b;
 	float c;
 	float d;
+	float delta;
 
 	a = sqrtf(powf(p.x - r.cast.verticalx, 2) + powf(p.y - r.cast.verticaly, 2));
 	b = sqrtf(powf(p.x - r.cast.horizontalx, 2) + powf(p.y - r.cast.horizontaly, 2));
-	if((s.xh[r.id] < MAXINT - 1 && s.yh[r.id] < MAXINT - 1) || (s.xv[r.id] < MAXINT - 1 && s.yv[r.id] < MAXINT - 1))
-	{
-		c = sqrtf(powf(p.x - s.xv[r.id], 2) + powf(p.y - s.yv[r.id], 2));
-		d = sqrtf(powf(p.x - s.yh[r.id], 2) + powf(p.y - s.yh[r.id], 2));
-		if (c <= d)
-		{
-			s.x[r.id] = s.xv[r.id] * (-1);
-			s.y[r.id] = s.yv[r.id];
-			s.dist[r.id] = c;
-		}
-		else
-		{
-			s.x[r.id] = s.xh[r.id];
-			s.y[r.id] = s.yh[r.id];
-			s.dist[r.id] = d;
-		}
-	}
 	if (a <= b)
 	{
 		r.cast.wallHitx = r.cast.verticalx;
 		r.cast.wallHity = r.cast.verticaly;
 		r.cast.distance = a;
+		delta = a;
 	}
 	else
 	{
 		r.cast.wallHitx = r.cast.horizontalx;
 		r.cast.wallHity = r.cast.horizontaly;
 		r.cast.distance = b * (-1);
+		delta = b;
+	}
+	g_i = 0;
+	while(g_i < s.sprite)
+	{
+		if((s.xh[r.id][g_i] < MAXINT - 1 && s.yh[r.id][g_i] < MAXINT - 1) || (s.xv[r.id][g_i] < MAXINT - 1 && s.yv[r.id][g_i] < MAXINT - 1))
+		{
+			c = sqrtf(powf(p.x - s.xv[r.id][g_i], 2) + powf(p.y - s.yv[r.id][g_i], 2));
+			d = sqrtf(powf(p.x - s.xh[r.id][g_i], 2) + powf(p.y - s.yh[r.id][g_i], 2));
+			if (c <= d)
+			{
+				s.x[r.id][g_i] = s.xv[r.id][g_i] * (-1);
+				s.y[r.id][g_i] = s.yv[r.id][g_i];
+				s.dist[r.id][g_i] = c;
+			}
+			else
+			{
+				s.x[r.id][g_i] = s.xh[r.id][g_i];
+				s.y[r.id][g_i] = s.yh[r.id][g_i];
+				s.dist[r.id][g_i] = d;
+			}
+				if(s.dist[r.id][g_i] >= delta)
+					s.x[r.id][g_i] = MAXINT;
+		}
+		g_i++;
 	}
 }
 void	cast(float rayAngle)
@@ -584,15 +675,20 @@ void	cast(float rayAngle)
 	r.cast.verticalx = MAXINT;
 	r.cast.verticaly = MAXINT;
 	//sprite
-	s.xh[r.id] = MAXINT;
-	s.yh[r.id] = MAXINT;
-	s.xv[r.id] = MAXINT;
-	s.xh[r.id] = MAXINT;
-	s.x[r.id] = MAXINT;
-	s.y[r.id] = MAXINT;
-	s.dist[r.id] = 0;
+	s.xh[r.id][s.sprite] = MAXINT;
+	s.yh[r.id][s.sprite] = MAXINT;
+	s.xv[r.id][s.sprite] = MAXINT;
+	s.xh[r.id][s.sprite] = MAXINT;
+	s.x[r.id][s.sprite] = MAXINT;
+	s.y[r.id][s.sprite] = MAXINT;
+	s.dist[r.id][s.sprite] = 0;
 	horizontalintersect(rayAngle);
+	s.saveh = s.sprite;
+	s.sprite = 0;
 	verticalintersect(rayAngle);
+	if(s.sprite < s.saveh)
+		s.sprite = s.saveh;
+	printf("|%d|\n", s.sprite);
 	chosePoints();
 }
 void    render(int height, int width, char **lines, int indice)
@@ -631,15 +727,15 @@ void    render(int height, int width, char **lines, int indice)
 				//drawLine(p.rotationAngle, 0x000000);
 				//printf("|%f|", p.rotationAngle + fov / 2);
 			}
-			if(lines[a][b] == '2' && indice == 0)
-			{
-				if(indice == 0)
-				{
-					s.x[0] = p.x;
-					s.y[0] = p.y;				
-				}
-				put_square(x, y, 2);
-			}
+			// if(lines[a][b] == '2')
+			// {
+			// 	if(indice == 0)
+			// 	{
+			// 		s.x[0] = p.x;
+			// 		s.y[0] = p.y;				
+			// 	}
+			// 	put_square(x, y, 2);
+			// }
 			// else if(indice > 0)
 			// {
 			// // 	data[(int )p.x + (int )p.y * sc.w] = 0x000000;
@@ -804,6 +900,7 @@ void	blackscreen(void)
 		x++;
 	}
 }
+
 int update()
 {
 	static char i;
@@ -910,7 +1007,6 @@ int		ft_textures(void)
 	return(1);
 }
 
-
 int main()
 {
 	int fd;
@@ -920,7 +1016,6 @@ int main()
 	fd = open("map.txt", O_RDWR);
 	if(!readfile(fd))
 		return (0);
-	
 	a = 0;
 	b = 0;
 	while(lines[a])
@@ -949,7 +1044,7 @@ int main()
 	p.walkDirection = 0;
 	p.rotationAngle = 0;
 	p.moveSpeed = 3;
-	p.rotationSpeed = 3 * Pi / 180;
+	p.rotationSpeed = 1 * Pi / 180;
 	p.look = 0;
 	img = mlx_new_image(mlx_ptr, sc.w, sc.h);
 	data = (int*)mlx_get_data_addr(img, &a, &b, &c);
